@@ -1,0 +1,134 @@
+---
+title: "Visualising and Modelling Data"
+author: "Simon Parker"
+date: "21 July 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+A simple chart 
+
+```{r}
+ggplot(mpg, aes(cty, hwy)) + geom_point()
+```
+
+Now we will add a bit of colour
+
+```{r}
+ggplot(mpg, aes(cty, hwy)) + geom_point(aes(color = manufacturer))
+
+```
+
+I'm interested to see whether there is a difference between the fuel consumption of cars with large or small engines. To test this I will use dplyr to mutate a new variable from the mpg data, based on the displacement variable.
+
+```{r}
+mpg2 = mpg %>% 
+  mutate(size = cut(displ, 3, labels = c("Small", "Medium", "Large"))) 
+  
+ggplot(mpg2, aes(cty, hwy)) + geom_point(aes(color = size))
+
+```
+
+We can add further information to our chart by simply changing the aesthetic mapping.
+
+```{r}
+mpg2 = mpg %>% 
+  mutate(size = cut(displ, 3, labels = c("Small", "Medium", "Large"))) 
+  
+ggplot(mpg2, aes(cty, hwy)) + geom_point(aes(color = manufacturer, size = size))
+
+```
+
+I think we have made this a little tricky to read, it may be worth removing the size attribute from the mapping. Instead we can use facet to divide our graph into groups.
+
+```{r}
+mpg2 = mpg %>% 
+  mutate(size = cut(displ, 3, labels = c("Small", "Medium", "Large"))) 
+  
+ggplot(mpg2, aes(cty, hwy)) + geom_point(aes(color = manufacturer)) + facet_wrap("size")
+
+```
+
+We can then try change visualisation to layer, which may radically alter our graph.
+
+For example: 
+
+```{r}
+mpg2 = mpg %>% 
+  mutate(size = cut(displ, 3, labels = c("Small", "Medium", "Large"))) 
+  
+ggplot(mpg2, aes(cty, hwy)) + geom_smooth() + facet_wrap("size")
+
+```
+
+Or maybe a boxplot would be useful.
+
+```{r}
+mpg2 = mpg %>% 
+  mutate(size = cut(displ, 3, labels = c("Small", "Medium", "Large"))) 
+  
+ggplot(mpg2, aes(size, cty)) + geom_boxplot(fill = "lightcyan1") + theme(legend.position="none")
+
+
+```
+
+I want to find out if there is a difference in the highway (motorway) fuel economy of these cars when looking at the different transmissions, and how this has changed over time. The issue with simply using a facet of the trans variable, is that there are multiple auto and manual transmissions. 
+
+
+Using grepl and case_when, we can group up strings into new categories. In the example below I first mutate a new AM variable, then group up the different types of auto transmissions into a category named 'Auto'. As there are multiple types of manual transmission I also create a 'Manual' group.
+
+```{r}
+mpg3 <- mpg %>%  
+  mutate(AM = case_when(grepl("auto", trans) ~ "Auto", grepl("manual", trans) ~"Manual"))
+  
+  ggplot(mpg3, aes(AM, hwy)) + geom_boxplot(aes(fill = AM)) + theme(legend.position="none") + facet_wrap("year")
+```
+
+# Exercise 1
+
+```{r}
+
+```
+
+Visualising Sparklyr
+
+```{r}
+library(sparklyr)
+library(dplyr)
+library(nycflights13)
+library(ggplot2)
+
+sc <- spark_connect(master="local")
+flights <- copy_to(sc, flights, "flights", overwrite = T)
+airlines <- copy_to(sc, airlines, "airlines", overwrite = T)
+planes <- copy_to(sc, planes, "planes", overwrite = T)
+weather <- copy_to(sc, weather, "weather", overwrite= T)
+
+src_tbls(sc)
+
+```
+
+All we need to do is use the collect() command.
+
+```{r}
+
+flights %>%
+select(year, month, day, dep_delay, carrier) %>%
+filter(month == 12, day == 25) %>%
+select(carrier, dep_delay) %>%
+arrange(desc(dep_delay)) %>%
+collect() %>%
+ggplot(aes(dep_delay)) + geom_bar(aes(fill= carrier))  
+```
+  
+# Exercise 2
+
+Without loading the data into R, present a chart that you think is interesting based on the nycflights13 data
+
+```{r}
+
+```
+
